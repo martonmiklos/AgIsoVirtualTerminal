@@ -117,15 +117,15 @@ void SoftKeyMaskRenderAreaComponent::mouseDown(const MouseEvent &event)
 				}
 
 				ownerServer.send_soft_key_activation_message(isobus::VirtualTerminalBase::KeyActivationCode::ButtonPressedOrLatched,
-				                                             clickedObject->get_id(),
-				                                             parentMask->get_id(),
-				                                             keyCode,
-				                                             ownerServer.get_active_working_set()->get_control_function());
+															 clickedObject->get_id(),
+															 parentMask->get_id(),
+															 keyCode,
+															 ownerServer.get_active_working_set()->get_control_function());
 				ownerServer.set_button_held(ownerServer.get_active_working_set(),
-				                            clickedObject->get_id(),
-				                            activeMask->get_id(),
-				                            keyCode,
-				                            true);
+											clickedObject->get_id(),
+											activeMask->get_id(),
+											keyCode,
+											true);
 			}
 		}
 	}
@@ -177,15 +177,15 @@ void SoftKeyMaskRenderAreaComponent::mouseUp(const MouseEvent &event)
 				}
 
 				ownerServer.send_soft_key_activation_message(isobus::VirtualTerminalBase::KeyActivationCode::ButtonUnlatchedOrReleased,
-				                                             clickedObject->get_id(),
-				                                             parentMask->get_id(),
-				                                             keyCode,
-				                                             ownerServer.get_active_working_set()->get_control_function());
+															 clickedObject->get_id(),
+															 parentMask->get_id(),
+															 keyCode,
+															 ownerServer.get_active_working_set()->get_control_function());
 				ownerServer.set_button_released(ownerServer.get_active_working_set(),
-				                                clickedObject->get_id(),
-				                                activeMask->get_id(),
-				                                keyCode,
-				                                true);
+												clickedObject->get_id(),
+												activeMask->get_id(),
+												keyCode,
+												true);
 			}
 		}
 	}
@@ -196,8 +196,8 @@ std::shared_ptr<isobus::VTObject> SoftKeyMaskRenderAreaComponent::getClickedChil
 	std::shared_ptr<isobus::VTObject> retVal;
 
 	if ((nullptr == object) ||
-	    ((isobus::VirtualTerminalObjectType::ObjectPointer != object->get_object_type()) &&
-	     (0 == object->get_number_children())))
+		((isobus::VirtualTerminalObjectType::ObjectPointer != object->get_object_type()) &&
+		 (0 == object->get_number_children())))
 	{
 		return nullptr;
 	}
@@ -209,8 +209,8 @@ std::shared_ptr<isobus::VTObject> SoftKeyMaskRenderAreaComponent::getClickedChil
 		// Knowing the location requires some knowledge of how the mask is displaying each key...
 
 		if ((nullptr != child) &&
-		    (objectCanBeClicked(child)) &&
-		    (isClickWithinBounds(x, y, 0, 0, ownerServer.get_soft_key_descriptor_x_pixel_width(), ownerServer.get_soft_key_descriptor_y_pixel_width())))
+			(objectCanBeClicked(child)) &&
+			(isClickWithinBounds(x, y, 0, 0, ownerServer.get_soft_key_descriptor_x_pixel_width(), ownerServer.get_soft_key_descriptor_y_pixel_width())))
 		{
 			return child;
 		}
@@ -228,14 +228,16 @@ std::shared_ptr<isobus::VTObject> SoftKeyMaskRenderAreaComponent::getClickedChil
 			// Knowing the location requires some knowledge of how the mask is displaying each key...
 
 			if ((nullptr != child) &&
-			    (objectCanBeClicked(child)) &&
-			    (isClickWithinBounds(x, y, 10, 10 + (60 * i) + (10 * i), ownerServer.get_soft_key_descriptor_x_pixel_width(), ownerServer.get_soft_key_descriptor_y_pixel_width())))
+				(objectCanBeClicked(child)) &&
+				(isClickWithinBounds(x, y,
+									 10, 10 + (ownerServer.get_soft_key_descriptor_x_pixel_width() * i) + (10 * i),
+									 ownerServer.get_soft_key_descriptor_x_pixel_width(), ownerServer.get_soft_key_descriptor_y_pixel_width())))
 			{
 				return child;
 			}
 			else if (!objectCanBeClicked(child))
 			{
-				retVal = getClickedChildRecursive(child, x - 10, y - (10 + (60 * i) + (10 * i)));
+				retVal = getClickedChildRecursive(child, x - 10, y - (10 + (ownerServer.get_soft_key_descriptor_y_pixel_width() * i) + (10 * i)));
 
 				if (nullptr != retVal)
 				{
