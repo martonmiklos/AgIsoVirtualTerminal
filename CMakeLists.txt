@@ -79,13 +79,15 @@ target_sources(
           "src/OutputLinearBarGraphComponent.cpp"
           "src/OutputPolygonComponent.cpp"
           "src/InputStringComponent.cpp"
+          "src/NumberComponent.cpp"
           "src/AlarmMaskAudio.cpp"
           "src/AppImages.cpp"
           "src/ASCIILogFile.cpp"
           "src/ConfigureHardwareWindow.cpp"
           "src/ConfigureHardwareComponent.cpp"
           "src/StringEncodingConversions.cpp"
-          "src/InputListComponent.cpp")
+          "src/InputListComponent.cpp"
+          "src/TextDrawingComponent.cpp")
 
 
 target_include_directories(AgISOVirtualTerminal

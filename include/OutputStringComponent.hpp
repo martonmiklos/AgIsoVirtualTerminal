@@ -11,11 +11,12 @@
 
 #include "isobus/isobus/isobus_virtual_terminal_objects.hpp"
 #include "isobus/isobus/isobus_virtual_terminal_server_managed_working_set.hpp"
+#include "TextDrawingComponent.hpp"
 
 #include "JuceHeader.h"
 
 class OutputStringComponent : public isobus::OutputString
-  , public Component
+  , public TextDrawingComponent
 {
 public:
 	OutputStringComponent(std::shared_ptr<isobus::VirtualTerminalServerManagedWorkingSet> workingSet, isobus::OutputString sourceObject);
@@ -25,8 +26,6 @@ public:
 	static Justification convert_justification(HorizontalJustification horizontalJustification, VerticalJustification verticalJustification);
 
 private:
-	std::shared_ptr<isobus::VirtualTerminalServerManagedWorkingSet> parentWorkingSet;
-
 	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(OutputStringComponent)
 };
 
