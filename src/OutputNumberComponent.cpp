@@ -10,7 +10,7 @@
 
 OutputNumberComponent::OutputNumberComponent(std::shared_ptr<isobus::VirtualTerminalServerManagedWorkingSet> workingSet, isobus::OutputNumber sourceObject) :
   isobus::OutputNumber(sourceObject),
-  parentWorkingSet(workingSet)
+  NumberComponent(workingSet)
 {
 	setSize(get_width(), get_height());
 
@@ -69,100 +69,3 @@ void OutputNumberComponent::paint(Graphics &g)
 	g.drawText(valueText.str(), 0, 0, get_width(), get_height(), convert_justification(get_horizontal_justification(), get_vertical_justification()), false);
 }
 
-Justification OutputNumberComponent::convert_justification(HorizontalJustification horizontalJustification, VerticalJustification verticalJustification)
-{
-	Justification retVal = Justification::topLeft;
-
-	switch (horizontalJustification)
-	{
-		case HorizontalJustification::PositionLeft:
-		{
-			switch (verticalJustification)
-			{
-				case VerticalJustification::PositionTop:
-				{
-					retVal = Justification::topLeft;
-				}
-				break;
-
-				case VerticalJustification::PositionMiddle:
-				{
-					retVal = Justification::centredLeft;
-				}
-				break;
-
-				case VerticalJustification::PositionBottom:
-				{
-					retVal = Justification::bottomLeft;
-				}
-				break;
-
-				default:
-					break;
-			}
-		}
-		break;
-
-		case HorizontalJustification::PositionMiddle:
-		{
-			switch (verticalJustification)
-			{
-				case VerticalJustification::PositionTop:
-				{
-					retVal = Justification::centredTop;
-				}
-				break;
-
-				case VerticalJustification::PositionMiddle:
-				{
-					retVal = Justification::centred;
-				}
-				break;
-
-				case VerticalJustification::PositionBottom:
-				{
-					retVal = Justification::centredBottom;
-				}
-				break;
-
-				default:
-					break;
-			}
-		}
-		break;
-
-		case HorizontalJustification::PositionRight:
-		{
-			switch (verticalJustification)
-			{
-				case VerticalJustification::PositionTop:
-				{
-					retVal = Justification::topRight;
-				}
-				break;
-
-				case VerticalJustification::PositionMiddle:
-				{
-					retVal = Justification::centredRight;
-				}
-				break;
-
-				case VerticalJustification::PositionBottom:
-				{
-					retVal = Justification::bottomRight;
-				}
-				break;
-
-				default:
-					break;
-			}
-		}
-		break;
-
-		default:
-		{
-		}
-		break;
-	}
-	return retVal;
-}
