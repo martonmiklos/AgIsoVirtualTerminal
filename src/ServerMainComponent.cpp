@@ -1036,6 +1036,7 @@ void ServerMainComponent::change_selected_working_set(std::uint8_t index)
 
 		dataMaskRenderer.on_change_active_mask(ws);
 		softKeyMaskRenderer.on_change_active_mask(ws);
+		handle_button_release_on_mask_change();
 		activeWorkingSet = ws;
 		process_macro(activeWorkingSet->get_working_set_object(), isobus::EventID::OnActivate, isobus::VirtualTerminalObjectType::WorkingSet, activeWorkingSet);
 		ws->save_callback_handle(get_on_repaint_event_dispatcher().add_listener([this](std::shared_ptr<isobus::VirtualTerminalServerManagedWorkingSet>) { this->repaint_on_next_update(); }));
@@ -1083,12 +1084,34 @@ void ServerMainComponent::set_button_held(std::shared_ptr<isobus::VirtualTermina
 void ServerMainComponent::set_button_released(std::shared_ptr<isobus::VirtualTerminalServerManagedWorkingSet> workingSet, std::uint16_t objectID, std::uint16_t maskObjectID, std::uint8_t keyCode, bool isSoftKey)
 {
 	HeldButtonData buttonData(workingSet, objectID, maskObjectID, keyCode, isSoftKey);
-	bool alreadyHeld = false;
 
 	auto found = std::find(heldButtons.begin(), heldButtons.end(), buttonData);
 	if (heldButtons.end() != found)
 	{
 		heldButtons.erase(found);
+	}
+}
+
+void ServerMainComponent::handle_button_release_on_mask_change()
+{
+	// If a Key object or non latchable Button object is erased from the screen (e.g. due to a Change Active Mask
+	// command ...) while it is activated, the VT shall send a Soft Key Activation message
+	// or Button Activation message indicating released to the erased object on its parent Data Mask.
+	for (auto button = heldButtons.begin(); button != heldButtons.end();)
+	{
+		if (button->activeMaskObjectID != activeWorkingSetDataMaskObjectID)
+		{
+			send_button_activation_message(isobus::VirtualTerminalBase::KeyActivationCode::ButtonUnlatchedOrReleased,
+			                               button->buttonObjectID,
+			                               button->activeMaskObjectID,
+			                               button->buttonKeyCode,
+			                               get_active_working_set()->get_control_function());
+			button = heldButtons.erase(button);
+		}
+		else
+		{
+			button++;
+		}
 	}
 }
 
@@ -1259,6 +1282,7 @@ void ServerMainComponent::on_change_active_mask_callback(std::shared_ptr<isobus:
 		const MessageManagerLock mmLock;
 
 		dataMaskRenderer.on_change_active_mask(activeWorkingSet);
+		handle_button_release_on_mask_change();
 		softKeyMaskRenderer.on_change_active_mask(activeWorkingSet);
 
 		auto activeMask = affectedWorkingSet->get_object_by_id(newMask);
@@ -1326,6 +1350,7 @@ void ServerMainComponent::on_change_active_mask_callback(std::shared_ptr<isobus:
 void ServerMainComponent::repaint_data_and_soft_key_mask()
 {
 	dataMaskRenderer.on_change_active_mask(activeWorkingSet);
+	handle_button_release_on_mask_change();
 	softKeyMaskRenderer.on_change_active_mask(activeWorkingSet);
 	workingSetSelector.redraw();
 }
