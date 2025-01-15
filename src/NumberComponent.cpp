@@ -61,10 +61,24 @@ void NumberComponent::paint(Graphics &g)
 
 	std::ostringstream valueText;
 	valueText << std::fixed << std::setprecision(sourceNumber->get_number_of_decimals()) << scaledValue;
-	g.drawText(valueText.str(), 0, 0, sourceNumber->get_width(), sourceNumber->get_height(), convert_justification(sourceNumber->get_horizontal_justification(), sourceNumber->get_vertical_justification()), false);
+
+	auto valueString = valueText.str();
+	if (sourceNumber->get_option(isobus::NumberVTObject::Options::DisplayLeadingZeros))
+	{
+		auto font = g.getCurrentFont();
+		while (font.getStringWidth(valueString) < sourceNumber->get_width())
+		{
+			valueString = "0" + valueString;
+		}
+		g.drawText(valueString, 0, 0, sourceNumber->get_width(), sourceNumber->get_height(), convert_justification(sourceNumber->get_horizontal_justification(), sourceNumber->get_vertical_justification()), false);
+	}
+	else
+	{
+		g.drawText(valueString, 0, 0, sourceNumber->get_width(), sourceNumber->get_height(), convert_justification(sourceNumber->get_horizontal_justification(), sourceNumber->get_vertical_justification()), false);
+	}
 
 	if (strikeThrough)
 	{
-		drawStrikeThrough(g, sourceNumber->get_width(), sourceNumber->get_height(), valueText.str(), sourceNumber->get_horizontal_justification());
+		drawStrikeThrough(g, sourceNumber->get_width(), sourceNumber->get_height(), valueString, sourceNumber->get_horizontal_justification());
 	}
 }
