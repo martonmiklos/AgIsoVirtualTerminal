@@ -13,7 +13,6 @@ WorkingSetLoadingIndicatorComponent::WorkingSetLoadingIndicatorComponent(std::sh
 
 void WorkingSetLoadingIndicatorComponent::paint(Graphics &g)
 {
-	printf("WorkingSetLoadingIndicatorComponent::paint(Graphics &g)\n");
 	g.setColour(Colours::black);
 	g.fillAll();
 	g.setColour(Colours::white);
