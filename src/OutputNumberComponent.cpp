@@ -24,3 +24,4 @@ OutputNumberComponent::OutputNumberComponent(std::shared_ptr<isobus::VirtualTerm
 		setOpaque(true);
 	}
 }
+
