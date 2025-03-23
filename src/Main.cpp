@@ -12,7 +12,17 @@
 #include "isobus/hardware_integration/can_hardware_interface.hpp"
 #include "isobus/isobus/can_internal_control_function.hpp"
 #include "isobus/isobus/can_network_manager.hpp"
+#if JUCE_ANDROID
+#include "jni.h"
+#include "juce_core/native/juce_JNIHelpers_android.h"
+#define JNI_CLASS_MEMBERS(METHOD, STATICMETHOD, FIELD, STATICFIELD, CALLBACK)\
+     METHOD (addFlags, "addFlags", "(I)V") \
+     METHOD (clearFlags, "clearFlags", "(I)V") \
 
+DECLARE_JNI_CLASS (Window, "android/view/Window")
+#undef JNI_CLASS_MEMBERS
+
+#endif
 //==============================================================================
 class AgISOVirtualTerminalApplication : public juce::JUCEApplication
 {
@@ -109,6 +119,38 @@ public:
 
 #if JUCE_IOS || JUCE_ANDROID
 			setFullScreen(true);
+#if JUCE_ANDROID
+            if (auto* env = juce::getEnv())
+            {
+                auto activity = juce::getMainActivity();
+                if (activity.get() == nullptr)
+                {
+                    return;
+                }
+
+                jclass activityClass = env->GetObjectClass(activity.get());
+                jmethodID getWindowMethod = env->GetMethodID(activityClass, "getWindow", "()Landroid/view/Window;");
+                if (getWindowMethod == nullptr)
+                {
+                    return;
+                }
+
+                jobject window = env->CallObjectMethod(activity.get(), getWindowMethod);
+                if (window == nullptr)
+                {
+                    return;
+                }
+
+                jclass windowClass = env->GetObjectClass(window);
+                jmethodID addFlagsMethod = env->GetMethodID(windowClass, "addFlags", "(I)V");
+                if (addFlagsMethod == nullptr)
+                {
+                    return;
+                }
+
+                env->CallVoidMethod(window, addFlagsMethod, 0x00000080);
+            }
+#endif
 #else
 			setResizable(true, true);
 			centreWithSize(getWidth(), getHeight());
