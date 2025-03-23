@@ -3,11 +3,70 @@
 ** @author     Adrian Del Grosso
 ** @copyright  The Open-Agriculture Developers
 *******************************************************************************/
-#include "isobus/hardware_integration/available_can_drivers.hpp"
 
+#include "ASCIILogFile.hpp"
+#include "AppImages.h"
 #include "Main.hpp"
+#include "ServerMainComponent.hpp"
 #include "Settings.hpp"
 #include "git.h"
+#include <JuceHeader.h>
+#include "ASCIILogFile.hpp"
+#include "AppImages.h"
+#include "ServerMainComponent.hpp"
+#include "isobus/hardware_integration/can_hardware_interface.hpp"
+#include "isobus/isobus/can_internal_control_function.hpp"
+#include "isobus/isobus/can_network_manager.hpp"
+
+#if JUCE_ANDROID
+#include "jni.h"
+#include "juce_core/native/juce_JNIHelpers_android.h"
+#define JNI_CLASS_MEMBERS(METHOD, STATICMETHOD, FIELD, STATICFIELD, CALLBACK)\
+     METHOD (addFlags, "addFlags", "(I)V") \
+     METHOD (clearFlags, "clearFlags", "(I)V") \
+
+DECLARE_JNI_CLASS (Window, "android/view/Window")
+
+#include "isobus/hardware_integration/gs_can_libusb.hpp"
+
+std::shared_ptr<isobus::GS_CAN_Interface> gs_usb_interface;
+
+class ScalingContainer : public juce::Component
+{
+public:
+    ScalingContainer (std::unique_ptr<juce::Component> childToOwn,
+                      int originalW, int originalH)
+            : child (std::move(childToOwn)),
+              origW (originalW), origH (originalH)
+    {
+        jassert (child != nullptr);
+        addAndMakeVisible (*child);
+        child->setBounds (0, 0, origW, origH);
+    }
+
+    void resized() override
+    {
+        auto W = (float) getWidth();
+        auto H = (float) getHeight();
+
+        float scale = H / (float) origH;
+
+        const float targetW = (origW * scale);
+        const float targetH = (origH * scale);
+        const float offsetX = (W - targetW) * 0.5f;
+        const float offsetY = (H - targetH) * 0.5f;
+
+        child->setTransform (juce::AffineTransform::scale (scale, scale)
+                                     .translated (offsetX / scale,
+                                                  offsetY / scale));
+    }
+
+private:
+    std::unique_ptr<juce::Component> child;
+    const int   origW, origH;
+};
+
+#endif
 
 AgISOVirtualTerminalApplication::MainWindow::MainWindow(juce::String name, int vtNumberCmdLineArg) :
   DocumentWindow(name,
@@ -25,9 +84,15 @@ AgISOVirtualTerminalApplication::MainWindow::MainWindow(juce::String name, int v
 	canDrivers.push_back(std::make_shared<isobus::TouCANPlugin>(static_cast<std::int16_t>(0), 0));
 	canDrivers.push_back(std::make_shared<isobus::SysTecWindowsPlugin>());
 #elif defined(JUCE_MAC)
-	canDrivers.push_back(std::make_shared<isobus::MacCANPCANPlugin>(PCAN_USBBUS1));
-#else
+	canDrivers.push_back(std::make_shared<isobus::MacCANPCANPlugin>(PCAN_USBBUS1)
+#elif defined(JUCE_ANDROID)
+    gs_usb_interface = std::make_shared<isobus::GS_CAN_Interface>();
+	canDrivers.push_back(gs_usb_interface);
+#elif defined(JUCE_LINUX)
 	canDrivers.push_back(std::make_shared<isobus::SocketCANInterface>("can0"));
+	canDrivers.push_back(std::make_shared<isobus::GS_CAN_Interface>());
+#else
+	LOG_WARNING("Unsupported platform, no CAN drivers available");
 #endif
 
 	jassert(!canDrivers.empty()); // You need some kind of CAN interface to run this program!
@@ -38,9 +103,6 @@ AgISOVirtualTerminalApplication::MainWindow::MainWindow(juce::String name, int v
 	config.set_number_of_packets_per_dpo_message(255);
 	config.set_number_of_packets_per_cts_message(255);
 
-#ifndef JUCE_WINDOWS
-	isobus::CANHardwareInterface::assign_can_channel_frame_handler(0, canDrivers.at(0));
-#endif
 	isobus::NAME serverNAME(0);
 
 	Settings settings;
@@ -76,10 +138,53 @@ AgISOVirtualTerminalApplication::MainWindow::MainWindow(juce::String name, int v
 	serverNAME.set_manufacturer_code(1407);
 	serverInternalControlFunction = isobus::CANNetworkManager::CANNetwork.create_internal_control_function(serverNAME, 0, 0x26);
 	setUsingNativeTitleBar(true);
-	setContentOwned(new ServerMainComponent(serverInternalControlFunction, canDrivers, settings.settingsValueTree(), vtNumber), true);
 
-#if JUCE_IOS || JUCE_ANDROID
+#if JUCE_ANDROID
+    auto server = std::make_unique<ServerMainComponent>(
+            serverInternalControlFunction, canDrivers, settings.settingsValueTree(), vtNumber);
+    auto scaling = std::make_unique<ScalingContainer>(std::move(server),
+                                                      server->getWidth(), server->minimum_height());
+    setContentOwned(scaling.release(), false);
+#else
+	setContentOwned(new ServerMainComponent(serverInternalControlFunction, canDrivers, settings.settingsValueTree(), vtNumber), true);
+#endif
+
+
+#if defined(JUCE_IOS) || defined(JUCE_ANDROID)
 	setFullScreen(true);
+    Desktop::setScreenSaverEnabled(false);
+#if JUCE_ANDROID
+	if (auto* env = juce::getEnv())
+	{
+		auto activity = juce::getMainActivity();
+		if (activity.get() == nullptr)
+		{
+			return;
+		}
+
+		jclass activityClass = env->GetObjectClass(activity.get());
+		jmethodID getWindowMethod = env->GetMethodID(activityClass, "getWindow", "()Landroid/view/Window;");
+		if (getWindowMethod == nullptr)
+		{
+			return;
+		}
+
+		jobject window = env->CallObjectMethod(activity.get(), getWindowMethod);
+		if (window == nullptr)
+		{
+			return;
+		}
+
+		jclass windowClass = env->GetObjectClass(window);
+		jmethodID addFlagsMethod = env->GetMethodID(windowClass, "addFlags", "(I)V");
+		if (addFlagsMethod == nullptr)
+		{
+			return;
+		}
+
+		env->CallVoidMethod(window, addFlagsMethod, 0x00000080);
+	}
+#endif // JUCE_ANDROID
 #else
 	setResizable(true, true);
 	centreWithSize(getWidth(), getHeight());
@@ -128,3 +233,20 @@ std::string AgISOVirtualTerminalApplication::getApplicationNameWithBuildInfo()
 }
 
 START_JUCE_APPLICATION(AgISOVirtualTerminalApplication)
+
+#if JUCE_ANDROID
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_rmsl_juce_Java_set_1gs_1can_1usb_1descriptor(JNIEnv *env, jclass clazz, jint descriptor)
+{
+    gs_usb_interface->set_file_descriptor((int)descriptor);
+}
+#endif
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_rmsl_juce_Java_close_1gs_1can(JNIEnv *env, jclass clazz)
+{
+    if (gs_usb_interface) {
+        gs_usb_interface->close();
+    }
+}

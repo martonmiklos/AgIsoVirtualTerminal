@@ -38,6 +38,10 @@ public:
 		return true;
 	}
 
+#ifdef JUCE_ANDROID
+    void setGsCAN_USB_Descriptor(int descriptor);
+#endif
+
 	//==============================================================================
 	void initialise(const juce::String &commandLineParameters) override
 	{

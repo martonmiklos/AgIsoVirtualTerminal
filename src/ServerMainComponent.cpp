@@ -16,7 +16,10 @@
 #ifdef JUCE_WINDOWS
 #include "isobus/hardware_integration/toucan_vscp_canal.hpp"
 #elif JUCE_LINUX
+#include "isobus/hardware_integration/gs_can_libusb.hpp"
 #include "isobus/hardware_integration/socket_can_interface.hpp"
+#elif JUCE_ANDROID
+#include "isobus/hardware_integration/gs_can_libusb.hpp"
 #endif
 
 #include <chrono>
@@ -713,9 +716,7 @@ void ServerMainComponent::getAllCommands(juce::Array<juce::CommandID> &allComman
 	allCommands.add(static_cast<int>(CommandIDs::ClearISOData));
 	allCommands.add(static_cast<int>(CommandIDs::StartStop));
 	allCommands.add(static_cast<int>(CommandIDs::AutoStart));
-#ifdef JUCE_WINDOWS
-	allCommands.add(static_cast<int>(CommandIDs::ConfigureCANHardware));
-#elif JUCE_LINUX
+#if defined(JUCE_WINDOWS) || defined(JUCE_LINUX)
 	allCommands.add(static_cast<int>(CommandIDs::ConfigureCANHardware));
 #endif
 }
@@ -1080,9 +1081,7 @@ PopupMenu ServerMainComponent::getMenuForIndex(int index, const juce::String &)
 			retVal.addCommandItem(&mCommandManager, static_cast<int>(CommandIDs::ConfigureLogging));
 			retVal.addCommandItem(&mCommandManager, static_cast<int>(CommandIDs::ConfigureShortcuts));
 
-#ifdef JUCE_WINDOWS
-			retVal.addCommandItem(&mCommandManager, static_cast<int>(CommandIDs::ConfigureCANHardware));
-#elif JUCE_LINUX
+#if defined(JUCE_WINDOWS) || defined(JUCE_LINUX)
 			retVal.addCommandItem(&mCommandManager, static_cast<int>(CommandIDs::ConfigureCANHardware));
 #endif
 		}
@@ -1599,12 +1598,32 @@ void ServerMainComponent::check_load_settings(std::shared_ptr<ValueTree> setting
 				softKeyMaskRenderer.setSize(2 * SoftKeyMaskDimensions::PADDING + get_physical_soft_key_columns() * (SoftKeyMaskDimensions::PADDING + get_soft_key_descriptor_y_pixel_height()),
 				                            static_cast<int>(child.getProperty("DataMaskRenderAreaSize")));
 			}
+
 #ifdef JUCE_WINDOWS
 			if (!child.getProperty("TouCANSerial").isVoid())
 			{
 				std::static_pointer_cast<isobus::TouCANPlugin>(parentCANDrivers.at(2))->reconfigure(0, static_cast<std::uint32_t>(static_cast<int>(child.getProperty("TouCANSerial"))));
 			}
+#elif defined(JUCE_LINUX)
+			if (!child.getProperty("SocketCANInterface").isVoid())
+			{
+				std::static_pointer_cast<isobus::SocketCANInterface>(parentCANDrivers.at(0))->set_name(static_cast<String>(child.getProperty("SocketCANInterface")).toStdString());
+			}
+			else
+			{
+				std::static_pointer_cast<isobus::SocketCANInterface>(parentCANDrivers.at(0))->set_name("can0");
+				LOG_WARNING("Socket CAN interface name not yet configured. Using default of \"can0\"");
+			}
+#endif
 
+#if defined(JUCE_LINUX)
+			if (!child.getProperty("GS_CAN_Interface_Serial").isVoid())
+			{
+				std::static_pointer_cast<isobus::GS_CAN_Interface>(parentCANDrivers.at(1))->set_serial(static_cast<String>(child.getProperty("GS_CAN_Interface_Serial")).toStdString());
+			}
+#endif
+
+#if defined(JUCE_WINDOWS) || defined(JUCE_LINUX)
 			if (!child.getProperty("CANDriver").isVoid())
 			{
 				auto index = static_cast<std::uint32_t>(static_cast<int>(child.getProperty("CANDriver")));
@@ -1615,18 +1634,10 @@ void ServerMainComponent::check_load_settings(std::shared_ptr<ValueTree> setting
 					isobus::CANStackLogger::debug("CAN Driver selection loaded from config file.");
 				}
 			}
-#elif JUCE_LINUX
-			if (!child.getProperty("SocketCANInterface").isVoid())
-			{
-				std::static_pointer_cast<isobus::SocketCANInterface>(parentCANDrivers.at(0))->set_name(static_cast<String>(child.getProperty("SocketCANInterface")).toStdString());
-				isobus::CANStackLogger::info("Using Socket CAN interface name of: " + std::static_pointer_cast<isobus::SocketCANInterface>(parentCANDrivers.at(0))->get_device_name());
-			}
-			else
-			{
-				std::static_pointer_cast<isobus::SocketCANInterface>(parentCANDrivers.at(0))->set_name("can0");
-				isobus::CANStackLogger::warn("Socket CAN interface name not yet configured. Using default of \"can0\"");
-			}
+#elif defined(JUCE_ANDROID)
+            isobus::CANHardwareInterface::assign_can_channel_frame_handler(0, parentCANDrivers.at(0));
 #endif
+
 			softKeyMaskRenderer.setTopLeftPosition(100 + dataMaskRenderer.getWidth(), 4 + juce::LookAndFeel::getDefaultLookAndFeel().getDefaultMenuBarHeight());
 			JuceManagedWorkingSetCache::set_softkey_mask_dimension_info(softKeyMaskDimensions);
 		}

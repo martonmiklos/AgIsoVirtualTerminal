@@ -54,13 +54,13 @@ void DataMaskRenderAreaComponent::paint(Graphics &g)
 	else
 	{
 		auto logoImage = ImageCache::getFromMemory(AppImages::logo2_png, AppImages::logo2_pngSize);
-		g.drawImage(logoImage, 0, 0, 400, 400, 0, 0, logoImage.getWidth(), logoImage.getHeight());
+		g.drawImage(logoImage, 0, 0, getWidth() / 2, getHeight() / 2, 0, 0, logoImage.getWidth(), logoImage.getHeight());
 		g.setColour(Colours::white);
-		g.drawText("No Working Sets Are Active", 0, 400, 400, 80, Justification::centredTop, true);
+		g.drawText("No Working Sets Are Active", 0, getHeight() / 2, getWidth() / 2, 80, Justification::centredTop, true);
 
 		if (!hasStarted)
 		{
-			g.drawFittedText("To start the VT server, select \"Start/Stop\" from the control menu in the top left.", 0, 440, 400, 40, Justification::centredTop, 2);
+			g.drawFittedText("To start the VT server, select \"Start/Stop\" from the control menu in the top left.", 0, getHeight() / 2 + 40, getWidth()/2, 40, Justification::centredTop, 2);
 		}
 	}
 }
