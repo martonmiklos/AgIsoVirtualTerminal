@@ -26,8 +26,13 @@ AgISOVirtualTerminalApplication::MainWindow::MainWindow(juce::String name, int v
 	canDrivers.push_back(std::make_shared<isobus::SysTecWindowsPlugin>());
 #elif defined(JUCE_MAC)
 	canDrivers.push_back(std::make_shared<isobus::MacCANPCANPlugin>(PCAN_USBBUS1));
-#else
+#elif defined(JUCE_ANDROID)
+	canDrivers.push_back(std::make_shared<isobus::GS_CAN_Interface>());
+#elif defined(JUCE_LINUX)
 	canDrivers.push_back(std::make_shared<isobus::SocketCANInterface>("can0"));
+	canDrivers.push_back(std::make_shared<isobus::GS_CAN_Interface>());
+#else
+	LOG_WARNING("Unsupported platform, no CAN drivers available");
 #endif
 
 	jassert(!canDrivers.empty()); // You need some kind of CAN interface to run this program!
@@ -38,9 +43,6 @@ AgISOVirtualTerminalApplication::MainWindow::MainWindow(juce::String name, int v
 	config.set_number_of_packets_per_dpo_message(255);
 	config.set_number_of_packets_per_cts_message(255);
 
-#ifndef JUCE_WINDOWS
-	isobus::CANHardwareInterface::assign_can_channel_frame_handler(0, canDrivers.at(0));
-#endif
 	isobus::NAME serverNAME(0);
 
 	Settings settings;

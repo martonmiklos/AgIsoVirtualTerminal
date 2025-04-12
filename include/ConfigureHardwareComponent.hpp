@@ -26,8 +26,11 @@ public:
 
 private:
 	ComboBox hardwareInterfaceSelector;
-	TextEditor socketCANNameEditor;
+#if defined(JUCE_LINUX)
+	TextEditor socketCanDeviceNameEditor;
+#elif defined(JUCE_WINDOWS)
 	TextEditor touCANSerialEditor;
+#endif
 	TextButton okButton;
 	std::vector<std::shared_ptr<isobus::CANHardwarePlugin>> &parentCANDrivers;
 
