@@ -1,3 +1,11 @@
+//================================================================================================
+/// @file WorkingSetLoadingIndicatorComponent.hpp
+///
+/// @brief Defines a component to show object pools currently being transferred
+/// @author Miklos Marton
+///
+/// @copyright 2025 The Open-Agriculture Developers
+//================================================================================================
 #include "WorkingSetLoadingIndicatorComponent.hpp"
 
 #include "isobus/isobus/can_stack_logger.hpp"

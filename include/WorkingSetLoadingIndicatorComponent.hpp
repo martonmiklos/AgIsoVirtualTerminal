@@ -1,3 +1,11 @@
+//================================================================================================
+/// @file WorkingSetLoadingIndicatorComponent.hpp
+///
+/// @brief Defines a component to show object pools currently being transferred
+/// @author Miklos Marton
+///
+/// @copyright 2025 The Open-Agriculture Developers
+//================================================================================================
 #pragma once
 
 #include "isobus/isobus/isobus_virtual_terminal_objects.hpp"
@@ -13,7 +21,8 @@ public:
 	void paint(Graphics &g) override;
 
 private:
-	int height = 0, width = 0;
+  int height = 0;
+  int width = 0;
 	std::shared_ptr<isobus::VirtualTerminalServerManagedWorkingSet> parentWorkingSet;
 
 	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(WorkingSetLoadingIndicatorComponent)
