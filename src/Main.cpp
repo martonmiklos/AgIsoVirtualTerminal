@@ -27,7 +27,8 @@ AgISOVirtualTerminalApplication::MainWindow::MainWindow(juce::String name, int v
 #elif defined(JUCE_MAC)
 	canDrivers.push_back(std::make_shared<isobus::MacCANPCANPlugin>(PCAN_USBBUS1));
 #else
-	canDrivers.push_back(std::make_shared<isobus::SocketCANInterface>("can0"));
+	//canDrivers.push_back(std::make_shared<isobus::SocketCANInterface>("can0"));
+	canDrivers.push_back(std::make_shared<isobus::GS_CAN_Interface>());
 #endif
 
 	jassert(!canDrivers.empty()); // You need some kind of CAN interface to run this program!
@@ -44,7 +45,7 @@ AgISOVirtualTerminalApplication::MainWindow::MainWindow(juce::String name, int v
 		{
 			isobus::CANStackLogger::info("Config file not found, using defaults.");
 #ifdef JUCE_LINUX
-			std::static_pointer_cast<isobus::SocketCANInterface>(canDrivers.at(0))->set_name("can0");
+			//std::static_pointer_cast<isobus::SocketCANInterface>(canDrivers.at(0))->set_name("can0");
 			isobus::CANStackLogger::warn("Socket CAN interface name not yet configured. Using default of \"can0\"");
 #endif
 		}

@@ -27,6 +27,7 @@ elseif(APPLE)
   set(CAN_DRIVER "MacCANPCAN")
 else()
   set(CAN_DRIVER "SocketCAN")
+  list(APPEND CAN_DRIVER "gs_can_libusb")
 endif()
 
 find_package(JUCE MODULE)

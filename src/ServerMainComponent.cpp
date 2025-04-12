@@ -1579,7 +1579,7 @@ void ServerMainComponent::check_load_settings(std::shared_ptr<ValueTree> setting
 			if (!child.getProperty("SocketCANInterface").isVoid())
 			{
 				std::static_pointer_cast<isobus::SocketCANInterface>(parentCANDrivers.at(0))->set_name(static_cast<String>(child.getProperty("SocketCANInterface")).toStdString());
-				isobus::CANStackLogger::info("Using Socket CAN interface name of: " + std::static_pointer_cast<isobus::SocketCANInterface>(parentCANDrivers.at(0))->get_device_name());
+				LOG_INFO("Using GS CAN adapter");
 			}
 			else
 			{
