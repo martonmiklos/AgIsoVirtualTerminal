@@ -536,10 +536,9 @@ void ServerMainComponent::timerCallback()
 				send_end_of_object_pool_response(true, isobus::NULL_OBJECT_ID, ws->get_object_pool_faulting_object_id(), 0, ws->get_control_function());
 			}
 		}
-		else if ((isobus::VirtualTerminalServerManagedWorkingSet::ObjectPoolProcessingThreadState::Joined == ws->get_object_pool_processing_state()) &&
-		         ((isobus::SystemTiming::time_expired_ms(ws->get_working_set_maintenance_message_timestamp_ms(), 3000)) ||
-		          (ws->is_deletion_requested())))
+		else if (isobus::SystemTiming::time_expired_ms(ws->get_working_set_maintenance_message_timestamp_ms(), 3000) || ws->is_deletion_requested())
 		{
+			managedWorkingSetIopLoadStateMap[ws] = false;
 			workingSetSelector.update_drawn_working_sets(managedWorkingSetList);
 			dataMaskRenderer.on_working_set_disconnect(ws);
 			softKeyMaskRenderer.on_working_set_disconnect(ws);
@@ -616,7 +615,7 @@ void ServerMainComponent::timerCallback()
 		{
 			if (!managedWorkingSetIopLoadStateMap[ws])
 			{
-				// object pool trasnsfer started add working set load indicators
+				// object pool transfer started add working set load indicators
 				workingSetSelector.update_drawn_working_sets(managedWorkingSetList);
 				managedWorkingSetIopLoadStateMap[ws] = true;
 			}

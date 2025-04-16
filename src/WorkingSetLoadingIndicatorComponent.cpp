@@ -8,8 +8,6 @@
 //================================================================================================
 #include "WorkingSetLoadingIndicatorComponent.hpp"
 
-#include "isobus/isobus/can_stack_logger.hpp"
-
 WorkingSetLoadingIndicatorComponent::WorkingSetLoadingIndicatorComponent(std::shared_ptr<isobus::VirtualTerminalServerManagedWorkingSet> workingSet, int keyHeight, int keyWidth) :
   parentWorkingSet(workingSet),
   width(keyWidth),

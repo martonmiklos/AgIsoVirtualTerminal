@@ -73,15 +73,24 @@ void WorkingSetSelectorComponent::redraw()
 
 void WorkingSetSelectorComponent::updateIopLoadIndicators()
 {
-	for (auto &child : children)
+	for (auto child = children.begin(); child != children.end();)
 	{
-		if (child.workingSet->is_object_pool_transfer_in_progress() &&
-		    child.workingSet->get_object_pool_processing_state() == isobus::VirtualTerminalServerManagedWorkingSet::ObjectPoolProcessingThreadState::None)
+		if (child->workingSet->is_object_pool_transfer_in_progress() &&
+		    child->workingSet->get_object_pool_processing_state() == isobus::VirtualTerminalServerManagedWorkingSet::ObjectPoolProcessingThreadState::None)
 		{
-			for (auto &subChild : child.childComponents)
+			for (auto &subChild : child->childComponents)
 			{
 				subChild->repaint();
 			}
+			++child;
+		}
+		else if (child->workingSet->is_deletion_requested())
+		{
+			for (auto &subChild : child->childComponents)
+			{
+				removeChildComponent(subChild.get());
+			}
+			children.erase(child);
 		}
 	}
 }
