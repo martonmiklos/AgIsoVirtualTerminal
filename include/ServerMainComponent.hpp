@@ -5,7 +5,10 @@
 #include "LoggerComponent.hpp"
 #include "SoftKeyMaskComponent.hpp"
 #include "SoftKeyMaskRenderAreaComponent.hpp"
+#include "VT_NumberComponent.hpp"
 #include "WorkingSetSelectorComponent.hpp"
+#include "isobus/isobus/isobus_diagnostic_protocol.hpp"
+#include "isobus/isobus/isobus_time_date_interface.hpp"
 #include "isobus/isobus/isobus_virtual_terminal_server.hpp"
 
 #include <filesystem>
@@ -18,7 +21,10 @@ class ServerMainComponent : public juce::Component
   , public MenuBarModel
 {
 public:
-	ServerMainComponent(std::shared_ptr<isobus::InternalControlFunction> serverControlFunction, std::vector<std::shared_ptr<isobus::CANHardwarePlugin>> &canDrivers);
+	ServerMainComponent(std::shared_ptr<isobus::InternalControlFunction> serverControlFunction,
+	                    std::vector<std::shared_ptr<isobus::CANHardwarePlugin>> &canDrivers,
+	                    std::shared_ptr<ValueTree> settings,
+	                    std::uint8_t vtNumber = 0);
 	~ServerMainComponent() override;
 
 	bool get_is_enough_memory(std::uint32_t requestedMemory) const override;
@@ -106,12 +112,16 @@ public:
 
 	void change_selected_working_set(std::uint8_t index);
 
-	void set_button_held(std::shared_ptr<isobus::VirtualTerminalServerManagedWorkingSet> workingSet, std::uint16_t objectID, std::uint16_t maskObjectID, std::uint8_t keyCode, bool isSoftKey);
-	void set_button_released(std::shared_ptr<isobus::VirtualTerminalServerManagedWorkingSet> workingSet, std::uint16_t objectID, std::uint16_t maskObjectID, std::uint8_t keyCode, bool isSoftKey);
+	void set_button_held(std::shared_ptr<isobus::VirtualTerminalServerManagedWorkingSet> workingSet, std::uint16_t objectID, std::uint16_t maskObjectID, std::uint8_t keyCode, bool isSoftKey, std::uint8_t pos);
+	void set_button_released(std::shared_ptr<isobus::VirtualTerminalServerManagedWorkingSet> workingSet, std::uint16_t objectID, std::uint16_t maskObjectID, std::uint8_t keyCode, bool isSoftKey, std::uint8_t pos);
+
+	bool is_key_position_released_by_mask_change(std::uint8_t pos) const;
 
 	void repaint_on_next_update();
 
 	void save_settings();
+
+	void identify_vt() override;
 
 private:
 	enum class CommandIDs : int
@@ -144,13 +154,14 @@ private:
 
 	struct HeldButtonData
 	{
-		HeldButtonData(std::shared_ptr<isobus::VirtualTerminalServerManagedWorkingSet> workingSet, std::uint16_t objectID, std::uint16_t maskObjectID, std::uint8_t keyCode, bool isSoftKey);
-		bool operator==(const HeldButtonData &other);
+		HeldButtonData(std::shared_ptr<isobus::VirtualTerminalServerManagedWorkingSet> workingSet, std::uint16_t objectID, std::uint16_t maskObjectID, std::uint8_t keyCode, bool isSoftKey, std::uint8_t position);
+		bool operator==(const HeldButtonData &other) const;
 		std::shared_ptr<isobus::VirtualTerminalServerManagedWorkingSet> associatedWorkingSet;
 		std::uint32_t timestamp_ms;
 		std::uint16_t buttonObjectID;
-		std::uint16_t activeMaskObjectID;
+		std::uint16_t softKeyMaskObjectID;
 		std::uint8_t buttonKeyCode;
+		std::uint8_t keyPosition; // applicable only for softkeys
 		bool isSoftKey;
 	};
 
@@ -158,9 +169,13 @@ private:
 
 	std::size_t number_of_iop_files_in_directory(std::filesystem::path path);
 
+	bool timeAndDateCallback(isobus::TimeDateInterface::TimeAndDate &timeAndDateToPopulate);
+
 	void on_change_active_mask_callback(std::shared_ptr<isobus::VirtualTerminalServerManagedWorkingSet> affectedWorkingSet, std::uint16_t workingSet, std::uint16_t newMask);
+	void on_change_active_softkey_mask_callback(std::shared_ptr<isobus::VirtualTerminalServerManagedWorkingSet> affectedWorkingSet, std::uint16_t targetDataOrAlarmMask, std::uint16_t newSoftKeyMask);
+	void handle_softkey_release_if_mask_changed();
 	void repaint_data_and_soft_key_mask();
-	void check_load_settings();
+	void check_load_settings(std::shared_ptr<ValueTree> settings);
 	void remove_working_set(std::shared_ptr<isobus::VirtualTerminalServerManagedWorkingSet> workingSetToRemove);
 	void clear_iso_data();
 
@@ -173,8 +188,11 @@ private:
 	MenuBarComponent menuBar;
 	LoggerComponent logger;
 	Viewport loggerViewport;
+	VT_NumberComponent vtNumberComponent;
 	SoundPlayer mSoundPlayer;
 	AudioDeviceManager mAudioDeviceManager;
+	std::unique_ptr<isobus::TimeDateInterface> timeServingInterface;
+	std::unique_ptr<isobus::DiagnosticProtocol> diagnosticProtocol;
 	std::unique_ptr<AlertWindow> popupMenu;
 	std::unique_ptr<ConfigureHardwareWindow> configureHardwareWindow;
 	std::shared_ptr<isobus::ControlFunction> alarmAckKeyWs;
@@ -182,6 +200,8 @@ private:
 	std::vector<HeldButtonData> heldButtons;
 	std::uint32_t alarmAckKeyMaskId = isobus::NULL_OBJECT_ID;
 	int alarmAckKeyCode = juce::KeyPress::escapeKey;
+	std::uint8_t vtNumber = 1;
+	std::uint8_t softKeyPositionReleasedByMaskChange;
 	std::uint8_t numberOfPoolsToRender = 0;
 	VTVersion versionToReport = VTVersion::Version5;
 	bool needToRepaint = false;

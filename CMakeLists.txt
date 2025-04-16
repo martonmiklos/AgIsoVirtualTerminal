@@ -31,6 +31,7 @@ endif()
 
 find_package(JUCE MODULE)
 find_package(CAN_Stack MODULE)
+find_package(git_version MODULE)
 find_package(Threads REQUIRED)
 
 juce_add_gui_app(
@@ -53,7 +54,7 @@ juce_add_gui_app(
   DESCRIPTION
   "An ISO11783-6 Server")
 
-set_target_properties(AgISOVirtualTerminal PROPERTIES CXX_STANDARD 17)
+set_target_properties(AgISOVirtualTerminal PROPERTIES CXX_STANDARD 20)
 
 target_compile_definitions(AgISOVirtualTerminal PRIVATE JUCE_USE_CURL=0
                                                         JUCE_WEB_BROWSER=0)
@@ -97,7 +98,9 @@ target_sources(
           "src/ConfigureHardwareComponent.cpp"
           "src/StringEncodingConversions.cpp"
           "src/InputListComponent.cpp"
-          "src/ShortcutsWindow.cpp")
+          "src/ShortcutsWindow.cpp"
+          "src/Settings.cpp"
+          "src/VT_NumberComponent.cpp")
 
 target_include_directories(AgISOVirtualTerminal
                            PRIVATE ${CMAKE_CURRENT_LIST_DIR}/include)
@@ -106,7 +109,8 @@ target_link_libraries(
   AgISOVirtualTerminal
   PRIVATE juce::juce_gui_extra juce::juce_audio_basics juce::juce_audio_utils
           isobus::Isobus isobus::HardwareIntegration isobus::Utility
-  PUBLIC juce::juce_recommended_config_flags juce::juce_recommended_lto_flags)
+  PUBLIC juce::juce_recommended_config_flags juce::juce_recommended_lto_flags
+         cmake_git_version_tracking)
 
 if(WIN32)
   add_custom_command(
