@@ -496,6 +496,7 @@ void ServerMainComponent::timerCallback()
 		statusMessageTimestamp_ms = isobus::SystemTiming::get_timestamp_ms();
 	}
 
+	bool hasIopLoadInProgress = false;
 	for (auto &ws : managedWorkingSetList)
 	{
 		if (isobus::VirtualTerminalServerManagedWorkingSet::ObjectPoolProcessingThreadState::Success == ws->get_object_pool_processing_state())
@@ -539,7 +540,6 @@ void ServerMainComponent::timerCallback()
 		else if (isobus::SystemTiming::time_expired_ms(ws->get_working_set_maintenance_message_timestamp_ms(), 3000) || ws->is_deletion_requested())
 		{
 			managedWorkingSetIopLoadStateMap[ws] = false;
-			workingSetSelector.update_drawn_working_sets(managedWorkingSetList);
 			dataMaskRenderer.on_working_set_disconnect(ws);
 			softKeyMaskRenderer.on_working_set_disconnect(ws);
 
@@ -579,6 +579,7 @@ void ServerMainComponent::timerCallback()
 				}
 			}
 			remove_working_set(ws);
+			workingSetSelector.update_drawn_working_sets(managedWorkingSetList);
 			break;
 		}
 		else if (isobus::VirtualTerminalServerManagedWorkingSet::ObjectPoolProcessingThreadState::Joined == ws->get_object_pool_processing_state())
@@ -621,9 +622,14 @@ void ServerMainComponent::timerCallback()
 			}
 			else
 			{
-				workingSetSelector.updateIopLoadIndicators();
+				hasIopLoadInProgress = true;
 			}
 		}
+	}
+
+	if (hasIopLoadInProgress)
+	{
+		workingSetSelector.updateIopLoadIndicators();
 	}
 }
 
