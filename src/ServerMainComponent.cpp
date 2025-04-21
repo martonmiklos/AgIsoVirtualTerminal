@@ -497,6 +497,7 @@ void ServerMainComponent::timerCallback()
 	}
 
 	bool hasIopLoadInProgress = false;
+	int wsIndex = 0;
 	for (auto &ws : managedWorkingSetList)
 	{
 		if (isobus::VirtualTerminalServerManagedWorkingSet::ObjectPoolProcessingThreadState::Success == ws->get_object_pool_processing_state())
@@ -511,7 +512,7 @@ void ServerMainComponent::timerCallback()
 			    (workingSetObject->get_selectable()))
 			{
 				ws->set_working_set_maintenance_message_timestamp_ms(isobus::SystemTiming::get_timestamp_ms());
-				change_selected_working_set(0);
+				change_selected_working_set(wsIndex);
 			}
 
 			if (ws->get_was_object_pool_loaded_from_non_volatile_memory())
@@ -625,6 +626,7 @@ void ServerMainComponent::timerCallback()
 				hasIopLoadInProgress = true;
 			}
 		}
+		wsIndex++;
 	}
 
 	if (hasIopLoadInProgress)
