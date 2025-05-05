@@ -6,6 +6,7 @@
 #include "SoftKeyMaskComponent.hpp"
 #include "JuceManagedWorkingSetCache.hpp"
 
+#include "isobus/isobus/can_stack_logger.hpp"
 #include "SoftKeyMaskRenderAreaComponent.hpp"
 
 SoftKeyMaskComponent::SoftKeyMaskComponent(std::shared_ptr<isobus::VirtualTerminalServerManagedWorkingSet> workingSet, isobus::SoftKeyMask sourceObject, SoftKeyMaskDimensions dimensions) :
@@ -24,6 +25,9 @@ void SoftKeyMaskComponent::on_content_changed(bool initial)
 	int x = dimensionInfo.PADDING + (dimensionInfo.columnCount - 1) * (dimensionInfo.PADDING + dimensionInfo.keyWidth);
 	int y = dimensionInfo.PADDING;
 
+  // Accumulate the bounding rectangles of the softkeys
+  // referenced to the topleft of the area where they drawn to being able to scale them down later.
+  Rectangle<int> childsBounds;
 	for (std::uint16_t i = 0; i < this->get_number_children(); i++)
 	{
 		auto child = get_object_by_id(get_child_id(i), parentWorkingSet->get_object_tree());
@@ -41,6 +45,15 @@ void SoftKeyMaskComponent::on_content_changed(bool initial)
 			{
 				addAndMakeVisible(*childComponents.back());
 				childComponents.back()->setTopLeftPosition(x, y);
+
+        auto currentChildBounds = getBoundsRecursively(childComponents.back().get(), this, Rectangle<int>());
+        LOG_INFO("%d - (%d) %d %d", reinterpret_cast<isobus::VTObject*>(childComponents.back().get())->get_id(),
+                reinterpret_cast<isobus::VTObject*>(childComponents.back().get())->get_object_type(),
+                 currentChildBounds.getWidth(), currentChildBounds.getHeight());
+        currentChildBounds.setX(currentChildBounds.getX() - x);
+        currentChildBounds.setY(currentChildBounds.getY() - y);
+
+        childsBounds = childsBounds.getUnion(currentChildBounds);
 				y += (dimensionInfo.PADDING + dimensionInfo.keyWidth);
 
 				row++;
@@ -53,6 +66,12 @@ void SoftKeyMaskComponent::on_content_changed(bool initial)
 			}
 		}
 	}
+
+  // scale all softkeys to fit the softkey area the best
+  for (auto &softKey : childComponents)
+  {
+    scaleChilds(softKey.get(), Rectangle<int>(0, 0, dimensionInfo.keyWidth, dimensionInfo.keyHeight), childsBounds, x, y);
+  }
 
 	if (!initial)
 	{

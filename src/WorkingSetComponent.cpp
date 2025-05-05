@@ -6,6 +6,8 @@
 #include "WorkingSetComponent.hpp"
 #include "JuceManagedWorkingSetCache.hpp"
 
+#include "isobus/isobus/can_stack_logger.hpp"
+
 WorkingSetComponent::WorkingSetComponent(std::shared_ptr<isobus::VirtualTerminalServerManagedWorkingSet> workingSet, isobus::WorkingSet sourceObject, int keyHeight, int keyWidth) :
   isobus::WorkingSet(sourceObject),
   parentWorkingSet(workingSet)
@@ -28,6 +30,8 @@ WorkingSetComponent::WorkingSetComponent(std::shared_ptr<isobus::VirtualTerminal
 			}
 		}
 	}
+  auto childsBounds = getBoundsRecursively(this, this, Rectangle<int>());
+  scaleChilds(this, Rectangle<int>(0, 0, keyWidth, keyHeight), childsBounds);
 }
 
 void WorkingSetComponent::paint(Graphics &g)

@@ -12,10 +12,10 @@
 #include "isobus/isobus/isobus_virtual_terminal_objects.hpp"
 #include "isobus/isobus/isobus_virtual_terminal_server_managed_working_set.hpp"
 
-#include "JuceHeader.h"
+#include "TargetAreaScalableComponent.hpp"
 
 class WorkingSetComponent : public isobus::WorkingSet
-  , public Component
+  , public TargetAreaScaleableComponent
 {
 public:
 	WorkingSetComponent(std::shared_ptr<isobus::VirtualTerminalServerManagedWorkingSet> workingSet, isobus::WorkingSet sourceObject, int keyHeight, int keyWidth);
@@ -24,7 +24,7 @@ public:
 
 private:
 	std::shared_ptr<isobus::VirtualTerminalServerManagedWorkingSet> parentWorkingSet;
-	std::vector<std::shared_ptr<Component>> childComponents;
+  std::vector<std::shared_ptr<Component>> childComponents;
 
 	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(WorkingSetComponent)
 };

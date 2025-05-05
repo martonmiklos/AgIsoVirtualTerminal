@@ -12,7 +12,7 @@
 #include "isobus/isobus/isobus_virtual_terminal_objects.hpp"
 #include "isobus/isobus/isobus_virtual_terminal_server_managed_working_set.hpp"
 
-#include "JuceHeader.h"
+#include "TargetAreaScalableComponent.hpp"
 
 class SoftKeyMaskDimensions
 {
@@ -40,7 +40,7 @@ public:
 };
 
 class SoftKeyMaskComponent : public isobus::SoftKeyMask
-  , public Component
+  , public TargetAreaScaleableComponent
 {
 public:
 	SoftKeyMaskComponent(std::shared_ptr<isobus::VirtualTerminalServerManagedWorkingSet> workingSet, isobus::SoftKeyMask sourceObject, SoftKeyMaskDimensions dimensions);
