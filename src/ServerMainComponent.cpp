@@ -1099,59 +1099,17 @@ std::shared_ptr<isobus::ControlFunction> ServerMainComponent::get_client_control
 
 void ServerMainComponent::change_selected_working_set(std::uint8_t index)
 {
-	if ((index < managedWorkingSetList.size()) &&
-	    (nullptr != managedWorkingSetList.at(index)->get_working_set_object()) &&
-	    (std::static_pointer_cast<isobus::WorkingSet>(managedWorkingSetList.at(index)->get_working_set_object())->get_selectable()))
-	{
-		bool lProcessActivateDeactivateMacros = false;
-
-		for (auto &ws : managedWorkingSetList)
-		{
-			ws->clear_callback_handles();
-		}
-		auto &ws = managedWorkingSetList.at(index);
-
-		if (activeWorkingSetMasterAddress != ws->get_control_function()->get_address())
-		{
-			lProcessActivateDeactivateMacros = true;
-
-			if (nullptr != activeWorkingSet)
-			{
-				process_macro(activeWorkingSet->get_working_set_object(), isobus::EventID::OnDeactivate, isobus::VirtualTerminalObjectType::WorkingSet, activeWorkingSet);
-				process_macro(ws->get_object_by_id(std::static_pointer_cast<isobus::WorkingSet>(ws->get_working_set_object())->get_active_mask()), isobus::EventID::OnHide, isobus::VirtualTerminalObjectType::DataMask, activeWorkingSet);
-			}
-		}
-
-		activeWorkingSetMasterAddress = ws->get_control_function()->get_address();
-
-		auto workingSetObject = std::static_pointer_cast<isobus::WorkingSet>(ws->get_working_set_object());
-		std::uint16_t previousActiveMask = activeWorkingSetDataMaskObjectID;
-		activeWorkingSetDataMaskObjectID = std::static_pointer_cast<isobus::WorkingSet>(ws->get_working_set_object())->get_active_mask();
-
-		dataMaskRenderer.on_change_active_mask(ws);
-		softKeyMaskRenderer.on_change_active_mask(ws);
-		activeWorkingSet = ws;
-		process_macro(activeWorkingSet->get_working_set_object(), isobus::EventID::OnActivate, isobus::VirtualTerminalObjectType::WorkingSet, activeWorkingSet);
-		ws->save_callback_handle(get_on_repaint_event_dispatcher().add_listener([this](std::shared_ptr<isobus::VirtualTerminalServerManagedWorkingSet>) { this->repaint_on_next_update(); }));
-		ws->save_callback_handle(get_on_change_active_mask_event_dispatcher().add_listener([this](std::shared_ptr<isobus::VirtualTerminalServerManagedWorkingSet> affectedWorkingSet, std::uint16_t workingSet, std::uint16_t newMask) { this->on_change_active_mask_callback(affectedWorkingSet, workingSet, newMask); }));
-
-		if (send_status_message())
-		{
-			statusMessageTimestamp_ms = isobus::SystemTiming::get_timestamp_ms();
-		}
-		else
-		{
-			statusMessageTimestamp_ms = 0;
-		}
-
-		if (previousActiveMask != activeWorkingSetDataMaskObjectID)
-		{
-			process_macro(ws->get_object_by_id(previousActiveMask), isobus::EventID::OnHide, isobus::VirtualTerminalObjectType::DataMask, activeWorkingSet);
-			process_macro(ws->get_object_by_id(previousActiveMask), isobus::EventID::OnHide, isobus::VirtualTerminalObjectType::AlarmMask, activeWorkingSet);
-			process_macro(ws->get_object_by_id(activeWorkingSetDataMaskObjectID), isobus::EventID::OnShow, isobus::VirtualTerminalObjectType::DataMask, activeWorkingSet);
-			process_macro(ws->get_object_by_id(activeWorkingSetDataMaskObjectID), isobus::EventID::OnShow, isobus::VirtualTerminalObjectType::AlarmMask, activeWorkingSet);
-		}
-	}
+	isobus::VirtualTerminalServer::change_selected_working_set(index);
+	dataMaskRenderer.on_change_active_mask(get_active_working_set());
+	softKeyMaskRenderer.on_change_active_mask(get_active_working_set());
+	get_active_working_set()->save_callback_handle(get_on_repaint_event_dispatcher().add_listener(
+	  [this](std::shared_ptr<isobus::VirtualTerminalServerManagedWorkingSet>) {
+		  this->repaint_on_next_update();
+	  }));
+	get_active_working_set()->save_callback_handle(get_on_change_active_mask_event_dispatcher().add_listener(
+	  [this](std::shared_ptr<isobus::VirtualTerminalServerManagedWorkingSet> affectedWorkingSet, std::uint16_t workingSet, std::uint16_t newMask) {
+		  this->on_change_active_mask_callback(affectedWorkingSet, workingSet, newMask);
+	  }));
 }
 
 void ServerMainComponent::set_button_held(std::shared_ptr<isobus::VirtualTerminalServerManagedWorkingSet> workingSet, std::uint16_t objectID, std::uint16_t maskObjectID, std::uint8_t keyCode, bool isSoftKey)
