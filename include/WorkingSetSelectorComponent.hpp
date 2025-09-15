@@ -45,6 +45,8 @@ private:
 	  std::shared_ptr<isobus::VirtualTerminalServerManagedWorkingSet> workingSet,
 	  int workingSetIndex);
 
+	int buttonCount = 0;
+	int topButtonIndex = 0;
 	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(WorkingSetSelectorComponent)
 };
 

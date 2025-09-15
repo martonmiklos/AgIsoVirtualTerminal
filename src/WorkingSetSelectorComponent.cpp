@@ -14,6 +14,8 @@ WorkingSetSelectorComponent::WorkingSetSelectorComponent(ServerMainComponent &se
 {
 	setOpaque(false);
 	setBounds(0, 0, 100, 600);
+
+	buttonCount = floor(getHeight() / 80.0);
 }
 
 void WorkingSetSelectorComponent::update_drawn_working_sets(std::vector<std::shared_ptr<isobus::VirtualTerminalServerManagedWorkingSet>> &managedWorkingSetList)
@@ -22,15 +24,18 @@ void WorkingSetSelectorComponent::update_drawn_working_sets(std::vector<std::sha
 
 	for (std::size_t i = 0; i < managedWorkingSetList.size(); i++)
 	{
-		children.push_back({ managedWorkingSetList.at(i) });
-
-		if ((
-		      (isobus::VirtualTerminalServerManagedWorkingSet::ObjectPoolProcessingThreadState::Joined == managedWorkingSetList.at(i)->get_object_pool_processing_state()) ||
-		      managedWorkingSetList.at(i)->is_object_pool_transfer_in_progress()) &&
-		    (!isobus::SystemTiming::time_expired_ms(managedWorkingSetList.at(i)->get_working_set_maintenance_message_timestamp_ms(), 3000)) &&
-		    (!managedWorkingSetList.at(i)->is_deletion_requested()))
+		if (topButtonIndex <= i && i < (topButtonIndex + buttonCount))
 		{
-			children.back().childComponents.push_back(getWorkingSetChildComponent(managedWorkingSetList.at(i), i));
+			children.push_back({ managedWorkingSetList.at(i) });
+
+			if ((
+			      (isobus::VirtualTerminalServerManagedWorkingSet::ObjectPoolProcessingThreadState::Joined == managedWorkingSetList.at(i)->get_object_pool_processing_state()) ||
+			      managedWorkingSetList.at(i)->is_object_pool_transfer_in_progress()) &&
+			    (!isobus::SystemTiming::time_expired_ms(managedWorkingSetList.at(i)->get_working_set_maintenance_message_timestamp_ms(), 3000)) &&
+			    (!managedWorkingSetList.at(i)->is_deletion_requested()))
+			{
+				children.back().childComponents.push_back(getWorkingSetChildComponent(managedWorkingSetList.at(i), i));
+			}
 		}
 	}
 
@@ -56,6 +61,11 @@ void WorkingSetSelectorComponent::paint(Graphics &g)
 		}
 		numberOfSquares++;
 	}
+
+	g.setColour(juce::Colours::yellow.withAlpha(0.4f));
+	auto height = (getHeight() - 20 - buttonCount * 80) / 2.0;
+	g.drawRoundedRectangle(4 + 15 - 2, 10 + 7 - 2 + (buttonCount * 80) + 10, parentServer.get_soft_key_descriptor_x_pixel_width() + 4, height + 4, 4, 4);
+	g.fillRoundedRectangle(4 + 15 - 2, 10 + 7 - 2 + (buttonCount * 80) + 10, parentServer.get_soft_key_descriptor_x_pixel_width() + 4, height + 4, 4);
 }
 
 void WorkingSetSelectorComponent::resized()
@@ -117,7 +127,7 @@ void WorkingSetSelectorComponent::mouseUp(const MouseEvent &event)
 
 	if ((relativeEvent.getMouseDownX() >= 19) && (relativeEvent.getMouseDownX() < 99) && (relativeEvent.getMouseDownY() > 17) && (relativeEvent.getMouseDownY() < 17 + children.size() * 80))
 	{
-		int workingSetIndex = (relativeEvent.getMouseDownY() - 17) / 80;
+		int workingSetIndex = ((relativeEvent.getMouseDownY() - 17) / 80) - topButtonIndex;
 
 		if (workingSetIndex <= 255)
 		{
