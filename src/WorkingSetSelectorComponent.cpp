@@ -13,8 +13,6 @@ WorkingSetSelectorComponent::WorkingSetSelectorComponent(ServerMainComponent &se
   parentServer(server)
 {
 	setOpaque(false);
-
-	buttonCount = floor(getHeight() / 80.0);
 	setBounds(0, 0, WIDTH, server.minimum_height());
 }
 
@@ -62,6 +60,10 @@ void WorkingSetSelectorComponent::paint(Graphics &g)
 		numberOfSquares++;
 	}
 
+	g.setColour(juce::Colours::black);
+	auto separatorLineY = button_padding() + buttonCount * (button_padding() + BUTTON_HEIGHT);
+	g.drawLine(0, separatorLineY, WIDTH, separatorLineY);
+
 	g.setColour(juce::Colours::yellow.withAlpha(0.4f));
 	auto height = (getHeight() - 20 - buttonCount * 80) / 2.0;
 	g.drawRoundedRectangle(4 + 15 - 2, 10 + 7 - 2 + (buttonCount * 80) + 10, parentServer.get_soft_key_descriptor_x_pixel_width() + 4, height + 4, 4, 4);
@@ -71,6 +73,7 @@ void WorkingSetSelectorComponent::paint(Graphics &g)
 void WorkingSetSelectorComponent::resized()
 {
 	setBounds(0, 0, WIDTH, parentServer.minimum_height());
+	buttonCount = floor((getHeight() - button_padding()) / (BUTTON_HEIGHT + button_padding()));
 }
 
 void WorkingSetSelectorComponent::redraw()
