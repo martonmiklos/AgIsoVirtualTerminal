@@ -96,7 +96,11 @@ void WorkingSetSelectorComponent::update_drawn_working_sets(std::vector<std::sha
 		    (!isobus::SystemTiming::time_expired_ms(managedWorkingSetList.at(i)->get_working_set_maintenance_message_timestamp_ms(), 3000)) &&
 		    (!managedWorkingSetList.at(i)->is_deletion_requested()))
 		{
-			children.back().childComponents.push_back(getWorkingSetChildComponent(managedWorkingSetList.at(i), i));
+			auto ws = getWorkingSetChildComponent(managedWorkingSetList.at(i), i);
+			if (ws)
+			{
+				children.back().childComponents.push_back(ws);
+			}
 		}
 	}
 
@@ -162,8 +166,12 @@ void WorkingSetSelectorComponent::redraw()
 	for (auto &workingSet : children)
 	{
 		workingSet.childComponents.clear();
-		workingSet.childComponents.push_back(getWorkingSetChildComponent(workingSet.workingSet, workingSetIndex));
-		workingSetIndex++;
+		auto ws = getWorkingSetChildComponent(workingSet.workingSet, workingSetIndex);
+		if (ws)
+		{
+			workingSet.childComponents.push_back(ws);
+			workingSetIndex++;
+		}
 	}
 	repaint();
 	ackButton.toFront(false);
@@ -213,6 +221,12 @@ std::shared_ptr<Component> WorkingSetSelectorComponent::getWorkingSetChildCompon
 	std::shared_ptr<Component> workingSetComponent;
 	if (nullptr != workingSetObject)
 	{
+		auto ws = std::static_pointer_cast<isobus::WorkingSet>(workingSetObject);
+		if (!ws->get_selectable())
+		{
+			// do not render working set selectors for non selectable working sets
+			return workingSetComponent;
+		}
 		workingSetComponent = JuceManagedWorkingSetCache::create_component(workingSet, workingSetObject);
 	}
 	else
