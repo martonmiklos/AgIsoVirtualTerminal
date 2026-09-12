@@ -93,7 +93,12 @@ void DataMaskRenderAreaComponent::mouseDown(const MouseEvent &event)
 				else if (isobus::VirtualTerminalObjectType::Key == clickedObject->get_object_type())
 				{
 					keyCode = std::static_pointer_cast<isobus::Key>(clickedObject)->get_key_code();
-					keyPos = std::static_pointer_cast<KeyComponent>(clickedObject)->getKeyPosition();
+					// keyPos stays InvalidSoftKeyPos: a soft key position describes where a key sits
+					// in the soft key mask's own row layout, which does not apply to a Key object
+					// rendered inside a data mask. It also must not be read off clickedObject here -
+					// that object comes from the working set's object model, not from the rendered
+					// KeyComponent tree, so casting it to KeyComponent reads past the end of a plain
+					// isobus::Key allocation.
 					ownerServer.process_macro(clickedObject, isobus::EventID::OnKeyPress, isobus::VirtualTerminalObjectType::Key, parentWorkingSet);
 				}
 
@@ -162,19 +167,20 @@ void DataMaskRenderAreaComponent::mouseUp(const MouseEvent &event)
 					case isobus::VirtualTerminalObjectType::Key:
 					{
 						keyCode = std::static_pointer_cast<isobus::Key>(clickedObject)->get_key_code();
-						std::uint8_t keyPos = std::static_pointer_cast<KeyComponent>(clickedObject)->getKeyPosition();
 						ownerServer.send_button_activation_message(isobus::VirtualTerminalBase::KeyActivationCode::ButtonUnlatchedOrReleased,
 						                                           clickedObject->get_id(),
 						                                           activeMask->get_id(),
 						                                           keyCode,
 						                                           ownerServer.get_active_working_set()->get_control_function());
 						ownerServer.process_macro(clickedObject, isobus::EventID::OnKeyRelease, isobus::VirtualTerminalObjectType::Key, parentWorkingSet);
+						// See the matching press in mouseDown() for why no soft key position is read
+						// off clickedObject here
 						ownerServer.set_button_released(ownerServer.get_active_working_set(),
 						                                clickedObject->get_id(),
 						                                activeMask->get_id(),
 						                                keyCode,
 						                                true,
-						                                keyPos);
+						                                KeyComponent::InvalidSoftKeyPos);
 					}
 					break;
 

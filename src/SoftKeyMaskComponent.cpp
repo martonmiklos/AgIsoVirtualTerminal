@@ -35,14 +35,16 @@ void SoftKeyMaskComponent::on_content_changed(bool initial)
 			if (isobus::VirtualTerminalObjectType::ObjectPointer == child->get_object_type())
 			{
 				childComponents.back()->setSize(dimensionInfo.keyWidth, dimensionInfo.keyHeight);
-				auto keyReference = get_object_by_id(std::static_pointer_cast<ObjectPointerComponent>(childComponents.back())->get_value(), parentWorkingSet->get_object_tree());
-				if (nullptr != keyReference && isobus::VirtualTerminalObjectType::Key == keyReference->get_object_type())
-				{
-					std::static_pointer_cast<KeyComponent>(keyReference)->setKeyPosition(i);
-				}
+				// Note: no position is recorded on whatever key this pointer resolves to. That
+				// object would come from the working set's object model, not from this rendered
+				// component tree, so casting it to KeyComponent to call setKeyPosition() on it
+				// wrote past the end of a plain isobus::Key allocation. The click handlers in
+				// SoftKeyMaskRenderAreaComponent derive the position from this same child index
+				// at click time instead, which covers pointer indirection for free.
 			}
 			else if (isobus::VirtualTerminalObjectType::Key == child->get_object_type())
 			{
+				// Safe: childComponents.back() really is the KeyComponent just created above
 				std::static_pointer_cast<KeyComponent>(childComponents.back())->setKeyPosition(i);
 			}
 
