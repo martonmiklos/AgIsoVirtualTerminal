@@ -1276,7 +1276,9 @@ void ServerMainComponent::set_button_held(std::shared_ptr<isobus::VirtualTermina
 
 bool ServerMainComponent::is_key_position_released_by_mask_change(std::uint8_t pos) const
 {
-	return softKeyPositionReleasedByMaskChange == pos;
+	// An unknown position must never match, or it would collide with the reset value below and
+	// silently swallow a release that does need to be sent
+	return (KeyComponent::InvalidSoftKeyPos != pos) && (softKeyPositionReleasedByMaskChange == pos);
 }
 
 void ServerMainComponent::set_button_released(std::shared_ptr<isobus::VirtualTerminalServerManagedWorkingSet> workingSet, std::uint16_t objectID, std::uint16_t activeMaskID, std::uint8_t keyCode, bool isSoftKey, uint8_t pos)

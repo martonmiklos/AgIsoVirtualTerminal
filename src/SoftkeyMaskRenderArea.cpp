@@ -107,18 +107,17 @@ void SoftKeyMaskRenderAreaComponent::mouseDown(const MouseEvent &event)
 			}
 
 			auto relativeEvent = event.getEventRelativeTo(this);
-			auto clickedObject = getClickedChildRecursive(softKeyMask, relativeEvent.getMouseDownX(), relativeEvent.getMouseDownY());
+			std::uint8_t keyPositon = KeyComponent::InvalidSoftKeyPos;
+			auto clickedObject = getClickedChildRecursive(softKeyMask, relativeEvent.getMouseDownX(), relativeEvent.getMouseDownY(), keyPositon);
 
 			ownerServer.process_macro(clickedObject, isobus::EventID::OnKeyPress, isobus::VirtualTerminalObjectType::Key, parentWorkingSet);
 
 			if (nullptr != clickedObject)
 			{
 				std::uint8_t keyCode = 1;
-				std::uint8_t keyPositon = KeyComponent::InvalidSoftKeyPos;
 				if (isobus::VirtualTerminalObjectType::Key == clickedObject->get_object_type())
 				{
 					keyCode = std::static_pointer_cast<isobus::Key>(clickedObject)->get_key_code();
-					keyPositon = std::static_pointer_cast<KeyComponent>(clickedObject)->getKeyPosition();
 				}
 
 				ownerServer.send_soft_key_activation_message(isobus::VirtualTerminalBase::KeyActivationCode::ButtonPressedOrLatched,
@@ -169,19 +168,18 @@ void SoftKeyMaskRenderAreaComponent::mouseUp(const MouseEvent &event)
 			}
 
 			auto relativeEvent = event.getEventRelativeTo(this);
-			auto clickedObject = getClickedChildRecursive(softKeyMask, relativeEvent.getPosition().x, relativeEvent.getPosition().y);
+			std::uint8_t keyPosition = KeyComponent::InvalidSoftKeyPos;
+			auto clickedObject = getClickedChildRecursive(softKeyMask, relativeEvent.getPosition().x, relativeEvent.getPosition().y, keyPosition);
 
 			ownerServer.process_macro(clickedObject, isobus::EventID::OnKeyRelease, isobus::VirtualTerminalObjectType::Key, parentWorkingSet);
 
 			std::uint8_t keyCode = 1;
-			std::uint8_t keyPosition = KeyComponent::InvalidSoftKeyPos;
 
 			if (nullptr != clickedObject)
 			{
 				if (isobus::VirtualTerminalObjectType::Key == clickedObject->get_object_type())
 				{
 					keyCode = std::static_pointer_cast<isobus::Key>(clickedObject)->get_key_code();
-					keyPosition = std::static_pointer_cast<KeyComponent>(clickedObject)->getKeyPosition();
 					jassert(keyPosition != KeyComponent::InvalidSoftKeyPos);
 				}
 				// TODO for VT4 / key group support we will need to pass the object ID of the key group object, not the active data/alarm mask ID
@@ -207,7 +205,7 @@ void SoftKeyMaskRenderAreaComponent::mouseUp(const MouseEvent &event)
 	}
 }
 
-std::shared_ptr<isobus::VTObject> SoftKeyMaskRenderAreaComponent::getClickedChildRecursive(std::shared_ptr<isobus::VTObject> object, int x, int y)
+std::shared_ptr<isobus::VTObject> SoftKeyMaskRenderAreaComponent::getClickedChildRecursive(std::shared_ptr<isobus::VTObject> object, int x, int y, std::uint8_t &positionOut)
 {
 	std::shared_ptr<isobus::VTObject> retVal;
 
@@ -223,6 +221,10 @@ std::shared_ptr<isobus::VTObject> SoftKeyMaskRenderAreaComponent::getClickedChil
 		auto child = object->get_object_by_id(std::static_pointer_cast<isobus::ObjectPointer>(object)->get_value(), parentWorkingSet->get_object_tree());
 
 		// Knowing the location requires some knowledge of how the mask is displaying each key...
+		// Note: positionOut is deliberately left untouched here. This branch only ever runs
+		// recursively, resolving what a soft key mask's own direct ObjectPointer child currently
+		// points to - the position is the ObjectPointer's own index among those direct children,
+		// already captured by the caller below before recursing in here.
 
 		if ((nullptr != child) &&
 		    (objectCanBeClicked(child)) &&
@@ -232,7 +234,7 @@ std::shared_ptr<isobus::VTObject> SoftKeyMaskRenderAreaComponent::getClickedChil
 		}
 		else if (!objectCanBeClicked(child))
 		{
-			retVal = getClickedChildRecursive(child, x, y);
+			retVal = getClickedChildRecursive(child, x, y, positionOut);
 		}
 	}
 	else
@@ -250,14 +252,20 @@ std::shared_ptr<isobus::VTObject> SoftKeyMaskRenderAreaComponent::getClickedChil
 			    (objectCanBeClicked(child)) &&
 			    (isClickWithinBounds(x, y, colX, rowY, ownerServer.get_soft_key_descriptor_x_pixel_width(), ownerServer.get_soft_key_descriptor_y_pixel_height())))
 			{
+				// i is this child's index among the soft key mask's own direct children, which
+				// is exactly what SoftKeyMaskComponent::on_content_changed() assigns as its
+				// on-screen position (whether the child is a Key directly, or an ObjectPointer
+				// this branch will resolve further below).
+				positionOut = static_cast<std::uint8_t>(i);
 				return child;
 			}
 			else if (!objectCanBeClicked(child))
 			{
-				retVal = getClickedChildRecursive(child, x - colX, y - rowY);
+				retVal = getClickedChildRecursive(child, x - colX, y - rowY, positionOut);
 
 				if (nullptr != retVal)
 				{
+					positionOut = static_cast<std::uint8_t>(i);
 					break;
 				}
 			}
